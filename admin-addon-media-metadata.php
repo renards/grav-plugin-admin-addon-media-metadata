@@ -72,27 +72,6 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     }
 
     /**
-     * Initialize needed class vars
-     */
-    private function setup() {
-        $this->gravAdmin = $this->grav['admin'];
-        $this->gravAssets = $this->grav['assets'];
-        $this->gravLanguage = $this->grav['language'];
-        $this->gravTwig = $this->grav['twig'];
-        $this->gravUri = $this->grav['uri'];
-    }
-
-    public function getPath()
-    {
-        return '/' . trim($this->gravAdmin->base, '/') . '/' . trim(self::ROUTE, '/');
-    }
-
-    public function buildBaseUrl()
-    {
-        return rtrim($this->gravUri->rootUrl(true), '/') . '/' . trim($this->getPath(), '/');
-    }
-
-    /**
      * Initialize the plugin
      */
     public function onPluginsInitialized()
@@ -116,7 +95,6 @@ class AdminAddonMediaMetadataPlugin extends Plugin
             'onPagesInitialized' => ['onTwigExtensions', 0],
             'onAdminAfterAddMedia' => ['createMetaYaml', 0],
             'onAdminTaskExecute' => ['editMetaDataFile', 0],
-//            'onAdminTaskExecute'  => ['editTest', 0],
         ]);
     }
 
@@ -186,11 +164,6 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         $this->gravAssets->addInlineJs($inlineJs, -1000);
         $this->gravAssets->addCss('plugin://admin-addon-media-metadata/admin-addon-media-metadata.css', -1000);
         $this->gravAssets->addJs('plugin://admin-addon-media-metadata/admin-addon-media-metadata.js', -1000);
-    }
-
-    public function editTest()
-    {
-        $this->outputError('blob');
     }
 
     public function editMetaDataFile($e)
@@ -307,6 +280,31 @@ class AdminAddonMediaMetadataPlugin extends Plugin
             }
         }
         return $arrMetaKeys;
+    }
+
+    /**
+     * Helper methods
+     */
+
+    /**
+     * Initialize needed class vars
+     */
+    private function setup(): void {
+        $this->gravAdmin = $this->grav['admin'];
+        $this->gravAssets = $this->grav['assets'];
+        $this->gravLanguage = $this->grav['language'];
+        $this->gravTwig = $this->grav['twig'];
+        $this->gravUri = $this->grav['uri'];
+    }
+
+    private function getPath()
+    {
+        return '/' . trim($this->gravAdmin->base, '/') . '/' . trim(self::ROUTE, '/');
+    }
+
+    private function buildBaseUrl()
+    {
+        return rtrim($this->gravUri->rootUrl(true), '/') . '/' . trim($this->getPath(), '/');
     }
 
     public function outputError($msg)
