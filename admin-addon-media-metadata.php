@@ -17,8 +17,8 @@ use RocketTheme\Toolbox\File\File;
  */
 class AdminAddonMediaMetadataPlugin extends Plugin
 {
-    const ROUTE = '/admin-addon-media-metadata';
-    const TASK_METADATA = 'AdminAddonMediaMetadataEdit';
+    protected const ROUTE = '/admin-addon-media-metadata';
+    protected const TASK_METADATA = 'AdminAddonMediaMetadataEdit';
 
     /**
      * @return array
