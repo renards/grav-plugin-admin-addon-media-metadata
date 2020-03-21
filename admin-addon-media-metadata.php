@@ -171,10 +171,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         $method = $e['method'];
         if ($method === 'task' . self::TASK_METADATA) {
             $fileName = filter_var($this->gravUri->post('filename'), FILTER_SANITIZE_STRING);
-
-            $pageObj = $this->gravAdmin->page();
-            $basePath = $pageObj->path() . DS;
-            $filePath = $basePath . $fileName;
+            $filePath = $this->getBasePath(). $fileName;
 
             if (!file_exists($filePath)) {
                 $this->outputError($this->gravLanguage->translate(
@@ -224,10 +221,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     public function createMetaYaml()
     {
         $fileName = $_FILES['file']['name'];
-
-        $pageObj = $this->gravAdmin->page();
-        $basePath = $pageObj->path() . DS;
-        $filePath = $basePath . $fileName;
+        $filePath = $this->getBasePath(). $fileName;
 
         if (!file_exists($filePath)) {
             $this->outputError($this->gravLanguage->translate(
@@ -236,7 +230,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         } else {
             // TODO: do that only for image files?
             $metaDataFileName = $fileName . '.meta.yaml';
-            $metaDataFilePath = $basePath . $metaDataFileName;
+            $metaDataFilePath = $this->getBasePath() . $metaDataFileName;
             if (!file_exists($metaDataFilePath)) {
                 /**
                  * get the list of form data from the fields configuration
@@ -306,6 +300,19 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     private function buildBaseUrl()
     {
         return rtrim($this->gravUri->rootUrl(true), '/') . '/' . trim($this->getPath(), '/');
+    }
+
+    /**
+     * @return string
+     */
+    private function getBasePath(): string
+    {
+        $basePath = $this->gravAdmin->page()->path() . DS;
+        if (null === $basePath) {
+            throw new \RuntimeException('The needed path could not be found.');
+        }
+
+        return $basePath;
     }
 
     public function outputError($msg)
