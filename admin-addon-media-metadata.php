@@ -13,6 +13,7 @@ use Grav\Common\Uri;
 use Grav\Common\Yaml;
 use Grav\Plugin\Admin\Admin;
 use RocketTheme\Toolbox\File\File;
+use RuntimeException;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
@@ -171,7 +172,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         $method = $e['method'];
         if ($method === 'task' . self::TASK_METADATA) {
             $fileName = filter_var($this->gravUri->post('filename'), FILTER_SANITIZE_STRING);
-            $filePath = $this->getBasePath(). $fileName;
+            $filePath = $this->getBasePath() . $fileName;
 
             if (!file_exists($filePath)) {
                 $this->outputError($this->gravLanguage->translate(
@@ -221,7 +222,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     public function createMetaYaml()
     {
         $fileName = $_FILES['file']['name'];
-        $filePath = $this->getBasePath(). $fileName;
+        $filePath = $this->getBasePath() . $fileName;
 
         if (!file_exists($filePath)) {
             $this->outputError($this->gravLanguage->translate(
@@ -288,7 +289,8 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     /**
      * Initialize needed class vars
      */
-    private function setup(): void {
+    private function setup(): void
+    {
         $this->gravAdmin = $this->grav['admin'];
         $this->gravAssets = $this->grav['assets'];
         $this->gravLanguage = $this->grav['language'];
@@ -313,7 +315,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     {
         $basePath = $this->gravAdmin->page()->path() . DS;
         if (null === $basePath) {
-            throw new \RuntimeException('The needed path could not be found.');
+            throw new RuntimeException('The needed path could not be found.');
         }
 
         return $basePath;
