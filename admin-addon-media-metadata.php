@@ -99,6 +99,18 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         ]);
     }
 
+    /**
+     * Initialize needed class vars
+     */
+    private function setup(): void
+    {
+        $this->gravAdmin = $this->grav['admin'];
+        $this->gravAssets = $this->grav['assets'];
+        $this->gravLanguage = $this->grav['language'];
+        $this->gravTwig = $this->grav['twig'];
+        $this->gravUri = $this->grav['uri'];
+    }
+
     public function onTwigTemplatePaths()
     {
         $this->gravTwig->twig_paths[] = __DIR__ . '/templates';
@@ -285,18 +297,6 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     /**
      * Helper methods
      */
-
-    /**
-     * Initialize needed class vars
-     */
-    private function setup(): void
-    {
-        $this->gravAdmin = $this->grav['admin'];
-        $this->gravAssets = $this->grav['assets'];
-        $this->gravLanguage = $this->grav['language'];
-        $this->gravTwig = $this->grav['twig'];
-        $this->gravUri = $this->grav['uri'];
-    }
 
     private function getPath()
     {
