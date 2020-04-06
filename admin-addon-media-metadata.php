@@ -162,7 +162,12 @@ class AdminAddonMediaMetadataPlugin extends Plugin
              * this will be output as inline JS variable adminAddonMediaMetadata
              */
             foreach ($arrMetaKeys as $metaKey => $info) {
-                $arrFiles[$filename][$metaKey] = $metadata->$metaKey;
+                if ('none' !== $this->languageCode) {
+                    $languageCode = $this->languageCode;
+                    $arrFiles[$filename][$metaKey] = $metadata->$languageCode[$metaKey];
+                } else {
+                    $arrFiles[$filename][$metaKey] = $metadata->$metaKey;
+                }
             }
             $i++;
         }
@@ -218,7 +223,11 @@ class AdminAddonMediaMetadataPlugin extends Plugin
                 foreach ($arrMetaKeys as $metaKey => $info) {
                     $postMetaKeyData = filter_var($this->gravUri->post($metaKey), FILTER_SANITIZE_STRING);
                     if (false !== $postMetaKeyData) {
-                        $storedMetaData[$metaKey] = $postMetaKeyData;
+                        if ('none' !== $this->languageCode) {
+                            $storedMetaData[$this->languageCode][$metaKey] = $postMetaKeyData;
+                        } else {
+                            $storedMetaData[$metaKey] = $postMetaKeyData;
+                        }
                     }
                 }
 
@@ -258,9 +267,18 @@ class AdminAddonMediaMetadataPlugin extends Plugin
                  */
                 $arrMetaKeys = $this->editableFields();
 
-                $newMetaData = [];
+                $newBasicMetaData = [];
                 foreach ($arrMetaKeys as $metaKey => $info) {
-                    $newMetaData[$metaKey] = '';
+                    $newBasicMetaData[$metaKey] = '';
+                }
+
+                $newMetaData = [];
+                if ('none' !== $this->languageCode) {
+                    foreach ($this->gravLanguage->getLanguages() as $language) {
+                        $newMetaData[$language] = $newBasicMetaData;
+                    }
+                } else {
+                    $newMetaData = $newBasicMetaData;
                 }
 
                 /**
