@@ -4,10 +4,18 @@ declare(strict_types=1);
 namespace Grav\Plugin;
 
 use Composer\Autoload\ClassLoader;
+use Grav\Common\Assets;
+use Grav\Common\Language\Language;
 use Grav\Common\Page\Media;
 use Grav\Common\Plugin;
+use Grav\Common\Twig\Twig;
+use Grav\Common\Uri;
 use Grav\Common\Yaml;
+use Grav\Plugin\Admin\Admin;
 use RocketTheme\Toolbox\File\File;
+use Twig\Error\LoaderError;
+use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
 
 /**
  * Class AdminAddonMediaMetadataPlugin
@@ -19,6 +27,21 @@ class AdminAddonMediaMetadataPlugin extends Plugin
 {
     protected const ROUTE = '/admin-addon-media-metadata';
     protected const TASK_METADATA = 'AdminAddonMediaMetadataEdit';
+
+    /** @var Admin */
+    protected $gravAdmin;
+
+    /** @var Assets */
+    protected $gravAssets;
+
+    /** @var Language */
+    protected $gravLanguage;
+
+    /** @var Twig */
+    protected $gravTwig;
+
+    /** @var Uri */
+    protected $gravUri;
 
     /**
      * @return array
@@ -48,14 +71,25 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         return require __DIR__ . '/vendor/autoload.php';
     }
 
+    /**
+     * Initialize needed class vars
+     */
+    private function setup() {
+        $this->gravAdmin = $this->grav['admin'];
+        $this->gravAssets = $this->grav['assets'];
+        $this->gravLanguage = $this->grav['language'];
+        $this->gravTwig = $this->grav['twig'];
+        $this->gravUri = $this->grav['uri'];
+    }
+
     public function getPath()
     {
-        return '/' . trim($this->grav['admin']->base, '/') . '/' . trim(self::ROUTE, '/');
+        return '/' . trim($this->gravAdmin->base, '/') . '/' . trim(self::ROUTE, '/');
     }
 
     public function buildBaseUrl()
     {
-        return rtrim($this->grav['uri']->rootUrl(true), '/') . '/' . trim($this->getPath(), '/');
+        return rtrim($this->gravUri->rootUrl(true), '/') . '/' . trim($this->getPath(), '/');
     }
 
     /**
@@ -67,7 +101,10 @@ class AdminAddonMediaMetadataPlugin extends Plugin
             return;
         }
 
-        if ($this->grav['uri']->path() == $this->getPath()) {
+        // Initialize needed class vars
+        $this->setup();
+
+        if ($this->gravUri->path() == $this->getPath()) {
             $this->enable([
                 'onPagesInitialized' => ['processRenameRequest', 0]
             ]);
@@ -85,12 +122,17 @@ class AdminAddonMediaMetadataPlugin extends Plugin
 
     public function onTwigTemplatePaths()
     {
-        $this->grav['twig']->twig_paths[] = __DIR__ . '/templates';
+        $this->gravTwig->twig_paths[] = __DIR__ . '/templates';
     }
 
+    /**
+     * @throws LoaderError
+     * @throws RuntimeError
+     * @throws SyntaxError
+     */
     public function onTwigExtensions()
     {
-        $page = $this->grav['admin']->page(true);
+        $page = $this->gravAdmin->page(true);
         if (!$page) {
             return;
         }
@@ -135,15 +177,15 @@ class AdminAddonMediaMetadataPlugin extends Plugin
 
         $inlineJs = 'var metadataFormFields = [' . $jsArrFormFields . '];';
         $inlineJs .= PHP_EOL . 'var mediaListOnLoad = ' . json_encode($arrFiles) . ';';
-        $modal = $this->grav['twig']->twig()->render('metadata-modal.html.twig', $formFields);
+        $modal = $this->gravTwig->twig()->render('metadata-modal.html.twig', $formFields);
         $jsConfig = [
             'PATH' => $this->buildBaseUrl() . '/' . $page->route() . '/task:' . self::TASK_METADATA,
             'MODAL' => $modal
         ];
         $inlineJs .= PHP_EOL . 'var adminAddonMediaMetadata = ' . json_encode($jsConfig) . ';';
-        $this->grav['assets']->addInlineJs($inlineJs, -1000);
-        $this->grav['assets']->addCss('plugin://admin-addon-media-metadata/admin-addon-media-metadata.css', -1000);
-        $this->grav['assets']->addJs('plugin://admin-addon-media-metadata/admin-addon-media-metadata.js', -1000);
+        $this->gravAssets->addInlineJs($inlineJs, -1000);
+        $this->gravAssets->addCss('plugin://admin-addon-media-metadata/admin-addon-media-metadata.css', -1000);
+        $this->gravAssets->addJs('plugin://admin-addon-media-metadata/admin-addon-media-metadata.js', -1000);
     }
 
     public function editTest()
@@ -157,13 +199,14 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         if ($method === 'task' . self::TASK_METADATA) {
             $fileName = $_POST['filename'];
 
-            $pageObj = $this->grav['admin']->page();
+            $pageObj = $this->gravAdmin->page();
             $basePath = $pageObj->path() . DS;
-
             $filePath = $basePath . $fileName;
 
             if (!file_exists($filePath)) {
-                $this->outputError($this->grav['language']->translate(['PLUGIN_ADMIN_ADDON_MEDIA_METADATA.ERRORS.MEDIA_FILE_NOT_FOUND', $filePath]));
+                $this->outputError($this->gravLanguage->translate(
+                    ['PLUGIN_ADMIN_ADDON_MEDIA_METADATA.ERRORS.MEDIA_FILE_NOT_FOUND', $filePath]
+                ));
             } else {
                 $metaDataFilePath = $filePath . '.meta.yaml';
 
@@ -208,12 +251,14 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     {
         $fileName = $_FILES['file']['name'];
 
-        $pageObj = $this->grav['admin']->page();
+        $pageObj = $this->gravAdmin->page();
         $basePath = $pageObj->path() . DS;
-
         $filePath = $basePath . $fileName;
+
         if (!file_exists($filePath)) {
-            $this->outputError($this->grav['language']->translate(['PLUGIN_ADMIN_ADDON_MEDIA_METADATA.ERRORS.MEDIA_FILE_NOT_FOUND', $filePath]));
+            $this->outputError($this->gravLanguage->translate(
+                ['PLUGIN_ADMIN_ADDON_MEDIA_METADATA.ERRORS.MEDIA_FILE_NOT_FOUND', $filePath]
+            ));
         } else {
             // TODO: do that only for image files?
             $metaDataFileName = $fileName . '.meta.yaml';
