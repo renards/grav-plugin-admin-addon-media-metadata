@@ -44,6 +44,9 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     /** @var Uri */
     protected $gravUri;
 
+    /** @var string */
+    protected $languageCode = 'none';
+
     /**
      * @return array
      *
@@ -100,15 +103,20 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     }
 
     /**
-     * Initialize needed class vars
+     * Initialize needed class vars and get the current language code
      */
     private function setup(): void
     {
+        // Copy the used array objects to class vars
+        // to recognize the corresponding methods by the ide
         $this->gravAdmin = $this->grav['admin'];
         $this->gravAssets = $this->grav['assets'];
         $this->gravLanguage = $this->grav['language'];
         $this->gravTwig = $this->grav['twig'];
         $this->gravUri = $this->grav['uri'];
+
+        // Get the current language code
+        $this->getLanguageCode();
     }
 
     public function onTwigTemplatePaths()
@@ -319,6 +327,13 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         }
 
         return $basePath;
+    }
+
+    private function getLanguageCode(): void
+    {
+        if (true === $this->gravLanguage->enabled()) {
+            $this->languageCode = $this->gravLanguage->getActive();
+        }
     }
 
     public function outputError($msg)
