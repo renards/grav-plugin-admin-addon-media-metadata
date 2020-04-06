@@ -196,7 +196,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
                  */
                 foreach ($arrMetaKeys as $metaKey => $info) {
                     $postMetaKeyData = filter_var($this->gravUri->post($metaKey), FILTER_SANITIZE_STRING);
-                    if (isset($postMetaKeyData)) {
+                    if (false !== $postMetaKeyData) {
                         $storedMetaData[$metaKey] = $postMetaKeyData;
                     }
                 }
@@ -267,7 +267,11 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         }
         $arrMetaKeys = [];
         foreach ($fieldsConf as $singleFieldConf) {
-            if (isset($singleFieldConf['name'], $singleFieldConf['type']) && $singleFieldConf['name'] !== 'filename') {
+            if (
+                null !== $singleFieldConf['name']
+                && null !== $singleFieldConf['type']
+                && $singleFieldConf['name'] !== 'filename'
+            ) {
                 $arrMetaKeys[$singleFieldConf['name']] = [
                     'name' => $singleFieldConf['name'],
                     'type' => $singleFieldConf['type']
