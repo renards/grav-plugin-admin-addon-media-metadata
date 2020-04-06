@@ -170,7 +170,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     {
         $method = $e['method'];
         if ($method === 'task' . self::TASK_METADATA) {
-            $fileName = $_POST['filename'];
+            $fileName = filter_var($this->gravUri->post('filename'), FILTER_SANITIZE_STRING);
 
             $pageObj = $this->gravAdmin->page();
             $basePath = $pageObj->path() . DS;
@@ -198,8 +198,9 @@ class AdminAddonMediaMetadataPlugin extends Plugin
                  * overwrite the currently stored data for each field in the form
                  */
                 foreach ($arrMetaKeys as $metaKey => $info) {
-                    if (isset($_POST[$metaKey])) {
-                        $storedMetaData[$metaKey] = $_POST[$metaKey];
+                    $postMetaKeyData = filter_var($this->gravUri->post($metaKey), FILTER_SANITIZE_STRING);
+                    if (isset($postMetaKeyData)) {
+                        $storedMetaData[$metaKey] = $postMetaKeyData;
                     }
                 }
 
