@@ -44,6 +44,9 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     /** @var Uri */
     protected $gravUri;
 
+    /** @var string */
+    protected $languageCode = 'none';
+
     /**
      * @return array
      *
@@ -99,6 +102,23 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         ]);
     }
 
+    /**
+     * Initialize needed class vars and get the current language code
+     */
+    private function setup(): void
+    {
+        // Copy the used array objects to class vars
+        // to recognize the corresponding methods by the ide
+        $this->gravAdmin = $this->grav['admin'];
+        $this->gravAssets = $this->grav['assets'];
+        $this->gravLanguage = $this->grav['language'];
+        $this->gravTwig = $this->grav['twig'];
+        $this->gravUri = $this->grav['uri'];
+
+        // Get the current language code
+        $this->getLanguageCode();
+    }
+
     public function onTwigTemplatePaths()
     {
         $this->gravTwig->twig_paths[] = __DIR__ . '/templates';
@@ -142,7 +162,12 @@ class AdminAddonMediaMetadataPlugin extends Plugin
              * this will be output as inline JS variable adminAddonMediaMetadata
              */
             foreach ($arrMetaKeys as $metaKey => $info) {
-                $arrFiles[$filename][$metaKey] = $metadata->$metaKey;
+                if ('none' !== $this->languageCode) {
+                    $languageCode = $this->languageCode;
+                    $arrFiles[$filename][$metaKey] = $metadata->$languageCode[$metaKey];
+                } else {
+                    $arrFiles[$filename][$metaKey] = $metadata->$metaKey;
+                }
             }
             $i++;
         }
@@ -198,7 +223,11 @@ class AdminAddonMediaMetadataPlugin extends Plugin
                 foreach ($arrMetaKeys as $metaKey => $info) {
                     $postMetaKeyData = filter_var($this->gravUri->post($metaKey), FILTER_SANITIZE_STRING);
                     if (false !== $postMetaKeyData) {
-                        $storedMetaData[$metaKey] = $postMetaKeyData;
+                        if ('none' !== $this->languageCode) {
+                            $storedMetaData[$this->languageCode][$metaKey] = $postMetaKeyData;
+                        } else {
+                            $storedMetaData[$metaKey] = $postMetaKeyData;
+                        }
                     }
                 }
 
@@ -238,9 +267,18 @@ class AdminAddonMediaMetadataPlugin extends Plugin
                  */
                 $arrMetaKeys = $this->editableFields();
 
-                $newMetaData = [];
+                $newBasicMetaData = [];
                 foreach ($arrMetaKeys as $metaKey => $info) {
-                    $newMetaData[$metaKey] = '';
+                    $newBasicMetaData[$metaKey] = '';
+                }
+
+                $newMetaData = [];
+                if ('none' !== $this->languageCode) {
+                    foreach ($this->gravLanguage->getLanguages() as $language) {
+                        $newMetaData[$language] = $newBasicMetaData;
+                    }
+                } else {
+                    $newMetaData = $newBasicMetaData;
                 }
 
                 /**
@@ -286,18 +324,6 @@ class AdminAddonMediaMetadataPlugin extends Plugin
      * Helper methods
      */
 
-    /**
-     * Initialize needed class vars
-     */
-    private function setup(): void
-    {
-        $this->gravAdmin = $this->grav['admin'];
-        $this->gravAssets = $this->grav['assets'];
-        $this->gravLanguage = $this->grav['language'];
-        $this->gravTwig = $this->grav['twig'];
-        $this->gravUri = $this->grav['uri'];
-    }
-
     private function getPath()
     {
         return '/' . trim($this->gravAdmin->base, '/') . '/' . trim(self::ROUTE, '/');
@@ -319,6 +345,13 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         }
 
         return $basePath;
+    }
+
+    private function getLanguageCode(): void
+    {
+        if (true === $this->gravLanguage->enabled()) {
+            $this->languageCode = $this->gravLanguage->getActive();
+        }
     }
 
     public function outputError($msg)
