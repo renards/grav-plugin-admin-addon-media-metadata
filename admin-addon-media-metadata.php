@@ -370,12 +370,18 @@ class AdminAddonMediaMetadataPlugin extends Plugin
      * Helper methods
      */
 
-    private function getPath()
+    /**
+     * @return string
+     */
+    private function getPath(): string
     {
         return '/' . trim($this->gravAdmin->base, '/') . '/' . trim(self::ROUTE, '/');
     }
 
-    private function buildBaseUrl()
+    /**
+     * @return string
+     */
+    private function buildBaseUrl(): string
     {
         return rtrim($this->gravUri->rootUrl(true), '/') . '/' . trim($this->getPath(), '/');
     }
