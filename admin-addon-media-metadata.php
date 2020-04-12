@@ -108,6 +108,11 @@ class AdminAddonMediaMetadataPlugin extends Plugin
 
     /**
      * Initialize needed class vars and set the current language code
+     *
+     * @todo : this method is called on onPluginsInitialized, so it seems to be called
+     *         for every plugin in this installation.
+     *         maybe it is better to include it when invoking these methods :
+     *           onTwigExtensions, createMetaYaml, editMetaDataFile, modifyUploadedFiles
      */
     private function setup(): void
     {
@@ -306,11 +311,11 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     {
         /** @var Page $page */
         $page = $event['object'];
-        $pageMediaOrder = (array)$page->getMediaOrder();
+        $pageMediaOrder = $page->getMediaOrder();
 
         /** @var Page $originalPage */
         $originalPage = $page->getOriginal();
-        $originalPageMediaOrder = (array)$originalPage->getMediaOrder();
+        $originalPageMediaOrder = $originalPage->getMediaOrder();
 
         $addedMedia = [];
         if ($pageMediaOrder != $originalPageMediaOrder) {
@@ -412,6 +417,8 @@ class AdminAddonMediaMetadataPlugin extends Plugin
      */
     private function getSanitizedFileName(string $fileName): string
     {
+        $sanitizedFilename = '';
+
         try {
             // Get composer autoloader. Can hopefully be removed in Grav >=1.7
             $this->autoload();
@@ -427,11 +434,13 @@ class AdminAddonMediaMetadataPlugin extends Plugin
             }
 
             $fileNameParts = pathinfo($fileName);
-
-            return $slugger->slug($fileNameParts['filename'], '_') . '.' . $fileNameParts['extension'];
+            $sanitizedFilename = $slugger->slug($fileNameParts['filename'], '_') . '.' . $fileNameParts['extension'];
         } catch (RuntimeException $e) {
+            // @todo : maybe a thrown exception is better here ?
             $this->outputError($e->getMessage());
         }
+
+        return $sanitizedFilename;
     }
 
     /**
