@@ -7,13 +7,16 @@ use Composer\Autoload\ClassLoader;
 use Grav\Common\Assets;
 use Grav\Common\Language\Language;
 use Grav\Common\Page\Media;
+use Grav\Common\Page\Page;
 use Grav\Common\Plugin;
 use Grav\Common\Twig\Twig;
 use Grav\Common\Uri;
 use Grav\Common\Yaml;
 use Grav\Plugin\Admin\Admin;
+use RocketTheme\Toolbox\Event\Event;
 use RocketTheme\Toolbox\File\File;
 use RuntimeException;
+use Symfony\Component\String\Slugger\AsciiSlugger;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
@@ -99,11 +102,17 @@ class AdminAddonMediaMetadataPlugin extends Plugin
             'onPagesInitialized' => ['onTwigExtensions', 0],
             'onAdminAfterAddMedia' => ['createMetaYaml', 0],
             'onAdminTaskExecute' => ['editMetaDataFile', 0],
+            'onAdminSave' => ['modifyUploadedFiles', 0],
         ]);
     }
 
     /**
-     * Initialize needed class vars and get the current language code
+     * Initialize needed class vars and set the current language code
+     *
+     * @todo : this method is called on onPluginsInitialized, so it seems to be called
+     *         for every plugin in this installation.
+     *         maybe it is better to include it when invoking these methods :
+     *           onTwigExtensions, createMetaYaml, editMetaDataFile, modifyUploadedFiles
      */
     private function setup(): void
     {
@@ -116,7 +125,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         $this->gravUri = $this->grav['uri'];
 
         // Get the current language code
-        $this->getLanguageCode();
+        $this->setLanguageCode();
     }
 
     public function onTwigTemplatePaths()
@@ -292,6 +301,48 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     }
 
     /**
+     * @param Event $event
+     *
+     * @todo : check, if the file with the sanitized filename already exists
+     * @todo : on 'normal' pages the content has to be checked as well and the filename has to be replaced.
+     * @todo : check, if the file name can be retrieved from the $_Files array
+     */
+    public function modifyUploadedFiles(Event $event)
+    {
+        /** @var Page $page */
+        $page = $event['object'];
+        $pageMediaOrder = $page->getMediaOrder();
+
+        /** @var Page $originalPage */
+        $originalPage = $page->getOriginal();
+        $originalPageMediaOrder = $originalPage->getMediaOrder();
+
+        $addedMedia = [];
+        if ($pageMediaOrder != $originalPageMediaOrder) {
+            $addedMedia = array_diff($pageMediaOrder, $originalPageMediaOrder);
+        }
+
+        if (0 < count($addedMedia)) {
+            $modifiedPageMediaOrder = $originalPageMediaOrder;
+
+            foreach ($addedMedia as $mediaItem) {
+                $mediaPath = $this->getBasePath() . $mediaItem;
+                $sanitizedFileName = $this->getSanitizedFileName($mediaItem);
+
+                if ($mediaItem !== $sanitizedFileName) {
+                    $sanitizedFilePath = $this->getBasePath() . $sanitizedFileName;
+                    $this->renameMediaFile($mediaPath, $sanitizedFilePath);
+                }
+
+                $modifiedPageMediaOrder[] = $sanitizedFileName;
+            }
+
+            // Write new media order to the frontmatter
+            $page->header()->media_order = implode(',', $modifiedPageMediaOrder);
+        }
+    }
+
+    /**
      * return all editable fields from form configuration
      */
     private function editableFields($fieldsConf = null)
@@ -324,12 +375,18 @@ class AdminAddonMediaMetadataPlugin extends Plugin
      * Helper methods
      */
 
-    private function getPath()
+    /**
+     * @return string
+     */
+    private function getPath(): string
     {
         return '/' . trim($this->gravAdmin->base, '/') . '/' . trim(self::ROUTE, '/');
     }
 
-    private function buildBaseUrl()
+    /**
+     * @return string
+     */
+    private function buildBaseUrl(): string
     {
         return rtrim($this->gravUri->rootUrl(true), '/') . '/' . trim($this->getPath(), '/');
     }
@@ -347,10 +404,60 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         return $basePath;
     }
 
-    private function getLanguageCode(): void
+    private function setLanguageCode(): void
     {
         if (true === $this->gravLanguage->enabled()) {
             $this->languageCode = $this->gravLanguage->getActive();
+        }
+    }
+
+    /**
+     * @param string $fileName
+     * @return string
+     */
+    private function getSanitizedFileName(string $fileName): string
+    {
+        $sanitizedFilename = '';
+
+        try {
+            // Get composer autoloader. Can hopefully be removed in Grav >=1.7
+            $this->autoload();
+
+            $currentLanguageCode = '';
+            if ('none' !== $this->languageCode) {
+                $currentLanguageCode = $this->languageCode;
+            }
+
+            $slugger = new AsciiSlugger($currentLanguageCode);
+            if (false === ($slugger instanceof AsciiSlugger)) {
+                throw new RuntimeException('The Symfony Slugger could not be loaded.');
+            }
+
+            $fileNameParts = pathinfo($fileName);
+            $sanitizedFilename = $slugger->slug($fileNameParts['filename'], '_') . '.' . $fileNameParts['extension'];
+        } catch (RuntimeException $e) {
+            // @todo : maybe a thrown exception is better here ?
+            $this->outputError($e->getMessage());
+        }
+
+        return $sanitizedFilename;
+    }
+
+    /**
+     * @param string $filePath
+     * @param string $newFilePath
+     */
+    private function renameMediaFile(string $filePath, string $newFilePath): void
+    {
+        // Renaming the meta file
+        if (!rename($filePath, $newFilePath)) {
+            throw new RuntimeException('An error occurred while renaming the media file.');
+        }
+
+        // Renaming the media meta file
+        $metaFileExtension = '.meta.yaml';
+        if (!rename($filePath . $metaFileExtension, $newFilePath . $metaFileExtension)) {
+            throw new RuntimeException('An error occurred while renaming the media meta file.');
         }
     }
 

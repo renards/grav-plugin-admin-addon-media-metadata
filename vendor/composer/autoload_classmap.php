@@ -7,4 +7,5 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Grav\\Plugin\\AdminAddonMediaMetadataPlugin' => $baseDir . '/admin-addon-media-metadata.php',
+    'Normalizer' => $vendorDir . '/symfony/polyfill-intl-normalizer/Resources/stubs/Normalizer.php',
 );
