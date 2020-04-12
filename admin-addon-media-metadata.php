@@ -107,7 +107,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
     }
 
     /**
-     * Initialize needed class vars and get the current language code
+     * Initialize needed class vars and set the current language code
      */
     private function setup(): void
     {
@@ -120,7 +120,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         $this->gravUri = $this->grav['uri'];
 
         // Get the current language code
-        $this->getLanguageCode();
+        $this->setLanguageCode();
     }
 
     public function onTwigTemplatePaths()
@@ -399,7 +399,7 @@ class AdminAddonMediaMetadataPlugin extends Plugin
         return $basePath;
     }
 
-    private function getLanguageCode(): void
+    private function setLanguageCode(): void
     {
         if (true === $this->gravLanguage->enabled()) {
             $this->languageCode = $this->gravLanguage->getActive();
