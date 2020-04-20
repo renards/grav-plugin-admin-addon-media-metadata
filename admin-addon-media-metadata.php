@@ -307,38 +307,42 @@ class AdminAddonMediaMetadataPlugin extends Plugin
      * @todo : on 'normal' pages the content has to be checked as well and the filename has to be replaced.
      * @todo : check, if the file name can be retrieved from the $_Files array
      */
-    public function modifyUploadedFiles(Event $event)
+    public function modifyUploadedFiles(Event $event): void
     {
         /** @var Page $page */
         $page = $event['object'];
-        $pageMediaOrder = $page->getMediaOrder();
 
-        /** @var Page $originalPage */
-        $originalPage = $page->getOriginal();
-        $originalPageMediaOrder = $originalPage->getMediaOrder();
+        // Only do the work if we the event object is a page
+        if ($page instanceof Page) {
+            $pageMediaOrder = $page->getMediaOrder();
 
-        $addedMedia = [];
-        if ($pageMediaOrder != $originalPageMediaOrder) {
-            $addedMedia = array_diff($pageMediaOrder, $originalPageMediaOrder);
-        }
+            /** @var Page $originalPage */
+            $originalPage = $page->getOriginal();
+            $originalPageMediaOrder = $originalPage->getMediaOrder();
 
-        if (0 < count($addedMedia)) {
-            $modifiedPageMediaOrder = $originalPageMediaOrder;
-
-            foreach ($addedMedia as $mediaItem) {
-                $mediaPath = $this->getBasePath() . $mediaItem;
-                $sanitizedFileName = $this->getSanitizedFileName($mediaItem);
-
-                if ($mediaItem !== $sanitizedFileName) {
-                    $sanitizedFilePath = $this->getBasePath() . $sanitizedFileName;
-                    $this->renameMediaFile($mediaPath, $sanitizedFilePath);
-                }
-
-                $modifiedPageMediaOrder[] = $sanitizedFileName;
+            $addedMedia = [];
+            if ($pageMediaOrder != $originalPageMediaOrder) {
+                $addedMedia = array_diff($pageMediaOrder, $originalPageMediaOrder);
             }
 
-            // Write new media order to the frontmatter
-            $page->header()->media_order = implode(',', $modifiedPageMediaOrder);
+            if (0 < count($addedMedia)) {
+                $modifiedPageMediaOrder = $originalPageMediaOrder;
+
+                foreach ($addedMedia as $mediaItem) {
+                    $mediaPath = $this->getBasePath() . $mediaItem;
+                    $sanitizedFileName = $this->getSanitizedFileName($mediaItem);
+
+                    if ($mediaItem !== $sanitizedFileName) {
+                        $sanitizedFilePath = $this->getBasePath() . $sanitizedFileName;
+                        $this->renameMediaFile($mediaPath, $sanitizedFilePath);
+                    }
+
+                    $modifiedPageMediaOrder[] = $sanitizedFileName;
+                }
+
+                // Write new media order to the frontmatter
+                $page->header()->media_order = implode(',', $modifiedPageMediaOrder);
+            }
         }
     }
 
